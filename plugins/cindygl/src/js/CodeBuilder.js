@@ -69,7 +69,6 @@ CodeBuilder.prototype.castType = function(term, fromType, toType) {
     }
 
     if (fromType === toType) return term;
-    if (fromType === type.anytype) return term;
     else {
         let nextType = next[fromType][toType]; //use precomputed matrix
         //   console.log(nextType);
@@ -321,14 +320,6 @@ CodeBuilder.prototype.determineUniforms = function(expr) {
             return expr["dependsOnPixel"] = false;
         }
 
-        let alwaysPixelDependent = [ //Operators that are supposed to be interpreted as pixel dependent;
-            'random', //our random function is dependent on pixel!
-            'verbatimglsl' //we dont analyse verbatimglsl functions
-        ];
-        if (expr['ctype'] === 'function' && alwaysPixelDependent.indexOf(getPlainName(expr['oper'])) != -1) {
-            return expr["dependsOnPixel"] = true;
-        }
-
         //run recursion on all dependent arguments
         for (let i in expr['args']) {
             if (dependsOnPixel(expr['args'][i], fun)) {
@@ -336,6 +327,10 @@ CodeBuilder.prototype.determineUniforms = function(expr) {
             }
         }
 
+        //our random function is dependent on pixel!
+        if (expr['ctype'] === 'function' && getPlainName(expr['oper']) === 'random') {
+            return expr["dependsOnPixel"] = true;
+        }
 
         //Oh yes, it also might be a user-defined function!
         if (expr['ctype'] === 'function' && myfunctions.hasOwnProperty(expr['oper'])) {
@@ -652,18 +647,6 @@ CodeBuilder.prototype.compile = function(expr, scope, generateTerm) {
         //console.log(JSON.stringify(expr));
         //console.log("this:" + JSON.stringify(this));
 
-
-        if (getPlainName(fname) === 'verbatimglsl') {
-            let glsl = this.api.evaluateAndVal(expr['args'][0]).value;
-            return (generateTerm ? {
-                term: glsl,
-                type: type.anytype,
-                code: ''
-            } : {
-                code: glsl
-            });
-        }
-
         let r = expr['args'].map(e => self.compile(e, scope, true)); //recursion on all arguments
 
         let termGenerator;
@@ -697,8 +680,6 @@ CodeBuilder.prototype.compile = function(expr, scope, generateTerm) {
                 } : {
                     code: ''
                 });
-
-
             let signature = matchSignature(fname, currenttype);
             if (signature === nada) {
                 console.error("Could not find a signature for " + fname + '(' + currenttype.map(typeToString).join(', ') + ').\n' +
@@ -716,7 +697,6 @@ CodeBuilder.prototype.compile = function(expr, scope, generateTerm) {
             targettype = signature.args;
             restype = signature.res;
             termGenerator = nada;
-
             for (let i in webgltr[fname]) {
                 if (signaturesAreEqual(webgltr[fname][i][0], signature)) {
                     termGenerator = webgltr[fname][i][1];
