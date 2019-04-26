@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <script src="https://unpkg.com/tone"></script>
+  </head>
+  <body>
+    <h1> halo </h1>
+    blablabla
+
+    <button onclick="playOscillator()"> start </button>
+    <button onclick="fun()"> stop </button>
+
+    <script>
+      var oscc;
+
+      function start() {
+        oscc = new Tone.Oscillator(440, "sine").toMaster().start();
+        oscc.partials = [0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1];
+      }
+
+      function fun() {
+        oscc.stop();
+      }
+
+      var line = 0;
+      var freq = 400;
+      var gain = 0.5;
+      var duration = 2;
+
+      function playOscillator() {
+        var osc = new Tone.Oscillator(freq, "sine");
+        var gain = new Tone.Gain(gain);
+        osc.start(0);
+        osc.connect(gain);
+        gain.gain = gain;
+        gain.toMaster();
+        if(duration >= 0){
+          gain.gain.setValueAtTime(0,Tone.context.currentTime + duration);
+        }
+        return {osc: osc, gain: gain};
+      }
+
+
+
+    </script>
+
+
+  </body>
+</html>
